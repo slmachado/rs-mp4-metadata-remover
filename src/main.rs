@@ -2,28 +2,33 @@ use std::process::Command;
 use std::fs;
 use std::env;
 use std::path::Path;
+use std::fs::rename;
 
-fn remove_metadata(input_file: &str, output_file: &str) {
+fn remove_metadata(input_file: &str) {
+    let temp_file = format!("{}.temp", input_file);
     let status = Command::new("ffmpeg")
-        .args(&["-i", input_file, "-map_metadata", "-1", "-c", "copy", output_file])
+        .args(&["-i", input_file, "-map_metadata", "-1", "-c", "copy", &temp_file])
         .status()
-        .expect("failed to execute ffmpeg");
+        .expect("Failed to execute ffmpeg");
 
     if status.success() {
-        println!("Metadata removed successfully: {}", output_file);
+        rename(&temp_file, input_file).expect("Error overwriting the original file");
+        println!("Metadata removed and file overwritten: {}", input_file);
     } else {
-        eprintln!("Error while removing metadata from: {}", input_file);
+        eprintln!("Error removing metadata from: {}", input_file);
+        if Path::new(&temp_file).exists() {
+            fs::remove_file(&temp_file).expect("Error removing temporary file");
+        }
     }
 }
 
 fn process_directory(directory: &str) {
-    for entry in fs::read_dir(directory).expect("Directory Not Found") {
-        let entry = entry.expect("Error while reading file");
+    for entry in fs::read_dir(directory).expect("Directory not found") {
+        let entry = entry.expect("Error reading file");
         let path = entry.path();
         if path.extension().and_then(|ext| ext.to_str()) == Some("mp4") {
             let input_file = path.to_str().unwrap();
-            let output_file = format!("{}/clean_{}", directory, path.file_name().unwrap().to_str().unwrap());
-            remove_metadata(input_file, &output_file);
+            remove_metadata(input_file);
         }
     }
 }
