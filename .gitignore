@@ -1,0 +1,28 @@
+# Rust-specific
+/target/
+**/*.rs.bk
+
+# Cargo-specific
+#/Cargo.lock      # Can be ignored for Libraries
+
+# IDEs and Development Files
+/.idea/
+/.vscode/
+/*.iml
+
+# Compilation Files
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Temporary Files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Archivos de saída de testes e benchmarks
+/tests-output/
+/benches-output/
