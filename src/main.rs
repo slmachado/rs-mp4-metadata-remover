@@ -5,7 +5,9 @@ use std::path::Path;
 use std::fs::rename;
 
 fn remove_metadata(input_file: &str) {
-    let temp_file = format!("{}.temp", input_file);
+    // Preserve the file extension when creating the temporary file
+    let temp_file = format!("{}.temp{}", input_file, Path::new(input_file).extension().and_then(|ext| ext.to_str()).map(|ext| format!(".{}", ext)).unwrap_or_default());
+
     let status = Command::new("ffmpeg")
         .args(&["-i", input_file, "-map_metadata", "-1", "-c", "copy", &temp_file])
         .status()
