@@ -10,19 +10,23 @@ This project provides a Rust-based tool for removing metadata from `.mp4` files.
 
 ## Usage
 1. **Clone the repository**:
+   
    ```bash
    git clone <repository_url>
    ```
 2. **Build the project**:
+   
    ```bash
     cargo build --release
    ```
 3. **Run the script**:
-    ***Default directory:***
+- Default directory:
+  
    ```bash
     cargo run
     ```
-   ***Custom directory:***
+- Custom directory:
+  
    ```bash
    cargo run /path/to/your/directory
     ```
