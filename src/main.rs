@@ -1,8 +1,8 @@
 use std::process::Command;
-use std::fs;
+use std::fs::{self, File};
 use std::env;
-use std::path::Path;
-use std::fs::rename;
+use std::path::{Path, PathBuf};
+use std::io::{BufRead, BufReader};
 
 fn remove_metadata(input_file: &str) {
     // Preserve the file extension when creating the temporary file
@@ -14,7 +14,7 @@ fn remove_metadata(input_file: &str) {
         .expect("Failed to execute ffmpeg");
 
     if status.success() {
-        rename(&temp_file, input_file).expect("Error overwriting the original file");
+        fs::rename(&temp_file, input_file).expect("Error overwriting the original file");
         println!("Metadata removed and file overwritten: {}", input_file);
     } else {
         eprintln!("Error removing metadata from: {}", input_file);
@@ -24,31 +24,54 @@ fn remove_metadata(input_file: &str) {
     }
 }
 
-fn process_directory(directory: &str) {
-    for entry in fs::read_dir(directory).expect("Directory not found") {
-        let entry = entry.expect("Error reading file");
-        let path = entry.path();
-        if path.extension().and_then(|ext| ext.to_str()) == Some("mp4") {
-            let input_file = path.to_str().unwrap();
-            remove_metadata(input_file);
+fn process_files_from_list(results_file_path: &str, target_directory: &str) {
+    let results_file = File::open(results_file_path).expect("Failed to open results.txt");
+    let reader = BufReader::new(results_file);
+
+    for line in reader.lines() {
+        let line = line.expect("Error reading line from results.txt");
+
+        // Check if the line ends with '.mp4'
+        if line.trim().ends_with(".mp4") {
+            let file_name = line.trim();
+            let mut file_path = PathBuf::from(target_directory);
+            file_path.push(file_name);
+
+            // Convert file path to string
+            if let Some(file_path_str) = file_path.to_str() {
+                if Path::new(file_path_str).exists() {
+                    remove_metadata(file_path_str);
+                } else {
+                    eprintln!("File not found: {}", file_path_str);
+                }
+            }
         }
     }
 }
 
 fn main() {
-    let default_directory = "/media/sergio/nenc/vds";
     let args: Vec<String> = env::args().collect();
 
-    let directory = if args.len() > 1 {
-        &args[1]
-    } else {
-        default_directory
-    };
-
-    if !Path::new(directory).is_dir() {
-        eprintln!("Error: The specified path is not a valid directory.");
+    if args.len() < 3 {
+        eprintln!("Usage: {} <results_file_directory> <target_directory>", args[0]);
         std::process::exit(1);
     }
 
-    process_directory(directory);
+    let results_file_directory = &args[1];
+    let target_directory = &args[2];
+
+    let mut results_file_path = PathBuf::from(results_file_directory);
+    results_file_path.push("results.txt");
+
+    if !Path::new(&results_file_path).exists() {
+        eprintln!("Error: results.txt not found in the specified directory.");
+        std::process::exit(1);
+    }
+
+    if !Path::new(target_directory).is_dir() {
+        eprintln!("Error: The target directory is not a valid directory.");
+        std::process::exit(1);
+    }
+
+    process_files_from_list(results_file_path.to_str().unwrap(), target_directory);
 }
